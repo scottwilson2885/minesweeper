@@ -78,7 +78,7 @@
     min-height: 100vh;
     min-height: 100dvh;
     padding: 10px 6px;
-    overflow-x: hidden;
+    overflow-x: auto;
     -webkit-tap-highlight-color: transparent;
     transition: background 0.4s, color 0.4s;
   }
@@ -237,7 +237,7 @@
   /* ── Board ── */
   #board-wrapper {
     overflow: auto;
-    max-width: 100%;
+    max-width: calc(100vw - 12px);
     max-height: calc(100dvh - 280px);
     border-radius: 10px;
     -webkit-overflow-scrolling: touch;
@@ -732,7 +732,7 @@ function getBaseCellSize() {
   const maxH = window.innerHeight - 300;
   const cW = Math.floor(maxW / cols);
   const cH = Math.floor((maxH - (rows - 1) * 2) / rows);
-  return Math.max(14, Math.min(38, cW, cH));
+  return Math.max(10, Math.min(38, cW, cH));
 }
 
 // ── Game ──
