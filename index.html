@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Minesweeper</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -15,29 +15,32 @@
     flex-direction: column;
     align-items: center;
     min-height: 100vh;
-    padding: 20px;
+    min-height: 100dvh;
+    padding: 10px;
+    overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
   }
 
   h1 {
-    font-size: 2rem;
-    margin-bottom: 10px;
+    font-size: 1.6rem;
+    margin-bottom: 8px;
     color: #e94560;
   }
 
   .controls {
     display: flex;
-    gap: 10px;
-    margin-bottom: 15px;
+    gap: 8px;
+    margin-bottom: 10px;
     flex-wrap: wrap;
     justify-content: center;
   }
 
   .controls button {
-    padding: 8px 16px;
+    padding: 6px 12px;
     border: none;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: bold;
     background: #16213e;
     color: #eee;
@@ -50,63 +53,67 @@
 
   .info-bar {
     display: flex;
-    gap: 30px;
-    margin-bottom: 15px;
-    font-size: 1.2rem;
+    gap: 15px;
+    margin-bottom: 8px;
+    font-size: 1rem;
     font-weight: bold;
+    align-items: center;
   }
 
   .info-bar span { color: #e94560; }
 
-  #message {
-    font-size: 1.4rem;
+  #flag-toggle {
+    padding: 6px 14px;
+    border: 2px solid #0f3460;
+    border-radius: 6px;
+    background: #16213e;
+    color: #eee;
+    font-size: 1rem;
     font-weight: bold;
-    margin-bottom: 10px;
-    height: 1.6em;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  #flag-toggle.active {
+    background: #e94560;
+    border-color: #e94560;
+  }
+
+  #message {
+    font-size: 1.1rem;
+    font-weight: bold;
+    margin-bottom: 8px;
+    height: 1.4em;
+    text-align: center;
   }
 
   #board {
     display: inline-grid;
-    gap: 2px;
+    gap: 1px;
     background: #0f3460;
-    padding: 4px;
-    border-radius: 8px;
+    padding: 3px;
+    border-radius: 6px;
+    max-width: 100%;
+    touch-action: manipulation;
   }
 
   .cell {
-    width: 36px;
-    height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1rem;
     font-weight: bold;
-    border-radius: 4px;
+    border-radius: 3px;
     cursor: pointer;
     user-select: none;
     transition: background 0.1s;
+    aspect-ratio: 1;
   }
 
-  .cell.hidden {
-    background: #16213e;
-  }
-
-  .cell.hidden:hover {
-    background: #1a2a50;
-  }
-
-  .cell.revealed {
-    background: #0a1628;
-    cursor: default;
-  }
-
-  .cell.flagged {
-    background: #16213e;
-  }
-
-  .cell.mine {
-    background: #e94560;
-  }
+  .cell.hidden { background: #16213e; }
+  .cell.hidden:hover { background: #1a2a50; }
+  .cell.revealed { background: #0a1628; cursor: default; }
+  .cell.flagged { background: #16213e; }
+  .cell.mine { background: #e94560; }
 
   .cell .n1 { color: #4fc3f7; }
   .cell .n2 { color: #81c784; }
@@ -130,7 +137,7 @@
 
 <div class="info-bar">
   Mines: <span id="mine-count">0</span>
-  &nbsp;&nbsp;
+  <button id="flag-toggle" onclick="toggleFlagMode()">Flag: OFF</button>
   Time: <span id="timer">0</span>s
 </div>
 
@@ -139,14 +146,31 @@
 
 <script>
 let rows, cols, totalMines;
-let board;       // 2D array of cell data
-let revealed;    // 2D array of booleans
-let flagged;     // 2D array of booleans
+let board;
+let revealed;
+let flagged;
 let gameOver;
 let firstClick;
 let minesLeft;
 let timerInterval;
 let seconds;
+let flagMode = false;
+let longPressTimer = null;
+
+function toggleFlagMode() {
+  flagMode = !flagMode;
+  const btn = document.getElementById('flag-toggle');
+  btn.textContent = flagMode ? 'Flag: ON' : 'Flag: OFF';
+  btn.classList.toggle('active', flagMode);
+}
+
+function getCellSize() {
+  const maxWidth = window.innerWidth - 26; // padding + board padding
+  const maxHeight = window.innerHeight - 180; // space for header/controls
+  const cellW = Math.floor((maxWidth - (cols - 1)) / cols);
+  const cellH = Math.floor((maxHeight - (rows - 1)) / rows);
+  return Math.max(16, Math.min(36, cellW, cellH));
+}
 
 function startGame(r, c, mines) {
   rows = r;
@@ -165,13 +189,11 @@ function startGame(r, c, mines) {
   document.getElementById('mine-count').textContent = minesLeft;
   document.getElementById('message').textContent = '';
 
-  // Highlight active difficulty button
   document.querySelectorAll('.controls button').forEach(btn => btn.classList.remove('active'));
   if (r === 9) document.getElementById('btn-easy').classList.add('active');
   else if (mines === 40) document.getElementById('btn-medium').classList.add('active');
   else document.getElementById('btn-hard').classList.add('active');
 
-  // Initialize empty board
   for (let i = 0; i < rows; i++) {
     board[i] = [];
     revealed[i] = [];
@@ -187,7 +209,6 @@ function startGame(r, c, mines) {
 }
 
 function placeMines(safeRow, safeCol) {
-  // Keep a safe zone around the first click
   let placed = 0;
   while (placed < totalMines) {
     const r = Math.floor(Math.random() * rows);
@@ -198,7 +219,6 @@ function placeMines(safeRow, safeCol) {
     placed++;
   }
 
-  // Calculate numbers
   for (let i = 0; i < rows; i++) {
     for (let j = 0; j < cols; j++) {
       if (board[i][j] === -1) continue;
@@ -218,20 +238,62 @@ function placeMines(safeRow, safeCol) {
 
 function renderBoard() {
   const boardEl = document.getElementById('board');
-  boardEl.style.gridTemplateColumns = `repeat(${cols}, 36px)`;
+  const cellSize = getCellSize();
+  const fontSize = Math.max(10, Math.floor(cellSize * 0.45));
+
+  boardEl.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
   boardEl.innerHTML = '';
 
   for (let i = 0; i < rows; i++) {
     for (let j = 0; j < cols; j++) {
       const cell = document.createElement('div');
       cell.className = 'cell hidden';
+      cell.style.width = cellSize + 'px';
+      cell.style.height = cellSize + 'px';
+      cell.style.fontSize = fontSize + 'px';
       cell.dataset.row = i;
       cell.dataset.col = j;
-      cell.addEventListener('click', () => handleClick(i, j));
+
+      // Desktop: click to reveal, right-click to flag
+      cell.addEventListener('click', (e) => {
+        if (flagMode) {
+          handleRightClick(i, j);
+        } else {
+          handleClick(i, j);
+        }
+      });
       cell.addEventListener('contextmenu', (e) => {
         e.preventDefault();
         handleRightClick(i, j);
       });
+
+      // Mobile: long press to flag
+      cell.addEventListener('touchstart', (e) => {
+        longPressTimer = setTimeout(() => {
+          longPressTimer = null;
+          handleRightClick(i, j);
+          cell.dataset.longPressed = 'true';
+        }, 400);
+      }, { passive: true });
+
+      cell.addEventListener('touchend', (e) => {
+        if (longPressTimer) {
+          clearTimeout(longPressTimer);
+          longPressTimer = null;
+        }
+        if (cell.dataset.longPressed === 'true') {
+          e.preventDefault();
+          cell.dataset.longPressed = 'false';
+        }
+      });
+
+      cell.addEventListener('touchmove', () => {
+        if (longPressTimer) {
+          clearTimeout(longPressTimer);
+          longPressTimer = null;
+        }
+      }, { passive: true });
+
       boardEl.appendChild(cell);
     }
   }
@@ -254,11 +316,10 @@ function handleClick(r, c) {
   }
 
   if (board[r][c] === -1) {
-    // Hit a mine — game over
     revealAll();
     gameOver = true;
     clearInterval(timerInterval);
-    document.getElementById('message').textContent = 'Game Over! Click a difficulty to play again.';
+    document.getElementById('message').textContent = 'Game Over! Pick a difficulty to retry.';
     return;
   }
 
@@ -299,7 +360,6 @@ function reveal(r, c) {
     span.textContent = val;
     cell.appendChild(span);
   } else if (val === 0) {
-    // Flood fill for empty cells
     for (let di = -1; di <= 1; di++) {
       for (let dj = -1; dj <= 1; dj++) {
         reveal(r + di, c + dj);
@@ -343,7 +403,6 @@ function checkWin() {
     clearInterval(timerInterval);
     document.getElementById('message').textContent =
       `You win! Completed in ${seconds}s`;
-    // Flag remaining mines
     for (let i = 0; i < rows; i++) {
       for (let j = 0; j < cols; j++) {
         if (board[i][j] === -1 && !flagged[i][j]) {
@@ -355,6 +414,11 @@ function checkWin() {
     document.getElementById('mine-count').textContent = 0;
   }
 }
+
+// Resize board when orientation changes
+window.addEventListener('resize', () => {
+  if (!gameOver || firstClick) renderBoard();
+});
 
 // Start with easy mode
 startGame(9, 9, 10);
