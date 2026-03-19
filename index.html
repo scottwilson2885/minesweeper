@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Minesweeper</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
@@ -756,10 +756,6 @@ function startGame(r, c, mines) {
   const wrapper = document.getElementById('board-wrapper');
   wrapper.scrollTop = 0;
   wrapper.scrollLeft = 0;
-  // Reset native browser zoom
-  const vp = document.querySelector('meta[name="viewport"]');
-  vp.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0');
-  setTimeout(() => vp.setAttribute('content', 'width=device-width, initial-scale=1.0'), 100);
   clearInterval(timerInterval);
   document.getElementById('timer').textContent = '0';
   document.getElementById('mine-count').textContent = minesLeft;
