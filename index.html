@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Minesweeper</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
@@ -610,6 +610,9 @@ let longPressTimer = null;
 let lastTapTime = 0;
 let lastTapCell = null;
 let singleTapTimer = null;
+let isPinching = false;
+let pinchStartDist = 0;
+let pinchStartZoom = 1;
 let zoomFactor = 1.0;
 let currentDifficulty = [9, 9, 10];
 let soundOn = true;
@@ -849,6 +852,7 @@ function renderBoard() {
 
       // Click
       cell.addEventListener('click', () => {
+        if (isPinching) return;
         const now = Date.now();
         const key = i + ',' + j;
         if (now - lastTapTime < 300 && lastTapCell === key) {
@@ -875,6 +879,7 @@ function renderBoard() {
 
       // Touch — track start position, allow small movement tolerance
       cell.addEventListener('touchstart', (e) => {
+        if (e.touches.length > 1) return;
         const touch = e.touches[0];
         cell.dataset.startX = touch.clientX;
         cell.dataset.startY = touch.clientY;
@@ -1253,6 +1258,42 @@ function launchConfetti() {
 
   draw();
 }
+
+// ── Pinch to zoom ──
+function getPinchDist(e) {
+  const t = e.touches;
+  const dx = t[0].clientX - t[1].clientX;
+  const dy = t[0].clientY - t[1].clientY;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+document.addEventListener('touchstart', (e) => {
+  if (e.touches.length === 2) {
+    isPinching = true;
+    pinchStartDist = getPinchDist(e);
+    pinchStartZoom = zoomFactor;
+    // Cancel any pending cell interactions
+    if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+    if (singleTapTimer) { clearTimeout(singleTapTimer); singleTapTimer = null; }
+  }
+}, { passive: true });
+
+document.addEventListener('touchmove', (e) => {
+  if (isPinching && e.touches.length === 2) {
+    e.preventDefault();
+    const dist = getPinchDist(e);
+    const scale = dist / pinchStartDist;
+    zoomFactor = Math.max(0.4, Math.min(2.0, pinchStartZoom * scale));
+    document.getElementById('zoom-level').textContent = Math.round(zoomFactor * 100) + '%';
+    renderBoard();
+  }
+}, { passive: false });
+
+document.addEventListener('touchend', () => {
+  if (isPinching) {
+    isPinching = false;
+  }
+});
 
 // ── Init ──
 window.addEventListener('resize', () => { if (!gameOver || firstClick) renderBoard(); });
