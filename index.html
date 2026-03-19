@@ -870,14 +870,18 @@ function renderBoard() {
 
       cell.addEventListener('contextmenu', (e) => { e.preventDefault(); handleFlag(i, j); });
 
-      // Touch
-      cell.addEventListener('touchstart', () => {
+      // Touch — track start position, allow small movement tolerance
+      cell.addEventListener('touchstart', (e) => {
+        const touch = e.touches[0];
+        cell.dataset.startX = touch.clientX;
+        cell.dataset.startY = touch.clientY;
         cell.classList.add('pressing');
         longPressTimer = setTimeout(() => {
           longPressTimer = null;
           handleFlag(i, j);
           cell.dataset.longPressed = 'true';
           cell.classList.remove('pressing');
+          haptic(15);
         }, 150);
       }, { passive: true });
 
@@ -887,9 +891,15 @@ function renderBoard() {
         if (cell.dataset.longPressed === 'true') { e.preventDefault(); cell.dataset.longPressed = 'false'; }
       });
 
-      cell.addEventListener('touchmove', () => {
-        cell.classList.remove('pressing');
-        if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+      cell.addEventListener('touchmove', (e) => {
+        // Only cancel if finger moved more than 15px
+        const touch = e.touches[0];
+        const dx = Math.abs(touch.clientX - parseFloat(cell.dataset.startX));
+        const dy = Math.abs(touch.clientY - parseFloat(cell.dataset.startY));
+        if (dx > 15 || dy > 15) {
+          cell.classList.remove('pressing');
+          if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+        }
       }, { passive: true });
 
       el.appendChild(cell);
