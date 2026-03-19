@@ -753,6 +753,9 @@ function startGame(r, c, mines) {
   cascadeDelay = 0;
 
   document.getElementById('zoom-level').textContent = '100%';
+  const wrapper = document.getElementById('board-wrapper');
+  wrapper.scrollTop = 0;
+  wrapper.scrollLeft = 0;
   clearInterval(timerInterval);
   document.getElementById('timer').textContent = '0';
   document.getElementById('mine-count').textContent = minesLeft;
