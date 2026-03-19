@@ -5,241 +5,478 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Minesweeper</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: #1a1a2e;
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
     color: #eee;
     display: flex;
     flex-direction: column;
     align-items: center;
     min-height: 100vh;
     min-height: 100dvh;
-    padding: 10px;
+    padding: 12px 8px;
     overflow-x: hidden;
     -webkit-tap-highlight-color: transparent;
   }
 
-  h1 {
-    font-size: 1.6rem;
-    margin-bottom: 8px;
-    color: #e94560;
+  /* ── Header ── */
+  .header {
+    text-align: center;
+    margin-bottom: 12px;
   }
 
-  .controls {
+  .header h1 {
+    font-size: 1.8rem;
+    font-weight: 800;
+    background: linear-gradient(90deg, #f7971e, #ffd200);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 1px;
+  }
+
+  .header .subtitle {
+    font-size: 0.75rem;
+    color: #888;
+    margin-top: 2px;
+  }
+
+  /* ── Difficulty Buttons ── */
+  .difficulty {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .difficulty button {
+    padding: 7px 14px;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 700;
+    background: rgba(255,255,255,0.08);
+    color: #ccc;
+    transition: all 0.25s;
+    backdrop-filter: blur(4px);
+  }
+
+  .difficulty button:hover { background: rgba(255,255,255,0.15); color: #fff; }
+  .difficulty button.active {
+    background: linear-gradient(135deg, #f7971e, #ffd200);
+    color: #1a1a2e;
+  }
+
+  /* ── Scoreboard ── */
+  .scoreboard {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 10px;
+    background: rgba(0,0,0,0.3);
+    padding: 8px 20px;
+    border-radius: 12px;
+    backdrop-filter: blur(8px);
+  }
+
+  .stat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.95rem;
+    font-weight: 700;
+  }
+
+  .stat .icon { font-size: 1.1rem; }
+  .stat .value { color: #ffd200; min-width: 24px; text-align: center; }
+
+  /* ── Action Toolbar ── */
+  .toolbar {
     display: flex;
     gap: 8px;
     margin-bottom: 10px;
-    flex-wrap: wrap;
-    justify-content: center;
   }
 
-  .controls button {
-    padding: 6px 12px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.85rem;
-    font-weight: bold;
-    background: #16213e;
-    color: #eee;
-    border: 2px solid #0f3460;
-    transition: background 0.2s;
-  }
-
-  .controls button:hover { background: #0f3460; }
-  .controls button.active { background: #e94560; border-color: #e94560; }
-
-  .info-bar {
+  .toolbar button {
     display: flex;
-    gap: 15px;
-    margin-bottom: 8px;
-    font-size: 1rem;
-    font-weight: bold;
     align-items: center;
-  }
-
-  .info-bar span { color: #e94560; }
-
-  #flag-toggle {
-    padding: 6px 14px;
-    border: 2px solid #0f3460;
-    border-radius: 6px;
-    background: #16213e;
-    color: #eee;
-    font-size: 1rem;
-    font-weight: bold;
+    gap: 5px;
+    padding: 8px 14px;
+    border: none;
+    border-radius: 10px;
     cursor: pointer;
-    transition: background 0.2s;
+    font-size: 0.82rem;
+    font-weight: 700;
+    background: rgba(255,255,255,0.08);
+    color: #ccc;
+    transition: all 0.25s;
+    backdrop-filter: blur(4px);
   }
 
-  #flag-toggle.active {
-    background: #e94560;
-    border-color: #e94560;
+  .toolbar button:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+  .toolbar button .btn-icon { font-size: 1rem; }
+
+  .toolbar button.restart-btn:hover {
+    background: rgba(255, 210, 0, 0.2);
+    color: #ffd200;
   }
 
-  .zoom-controls {
-    display: flex;
-    gap: 8px;
+  /* ── Mode Indicator ── */
+  .mode-bar {
     margin-bottom: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #888;
+    height: 1.2em;
   }
 
-  .zoom-controls button {
-    width: 36px;
-    height: 36px;
-    border: 2px solid #0f3460;
-    border-radius: 6px;
-    background: #16213e;
-    color: #eee;
-    font-size: 1.2rem;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background 0.2s;
+  .mode-bar.flag-active {
+    color: #ff6b6b;
   }
 
-  .zoom-controls button:hover { background: #0f3460; }
-
-  #zoom-level {
-    font-size: 0.85rem;
-    color: #aaa;
-    align-self: center;
-  }
-
+  /* ── Message ── */
   #message {
-    font-size: 1.1rem;
-    font-weight: bold;
+    font-size: 1rem;
+    font-weight: 700;
     margin-bottom: 8px;
-    height: 1.4em;
+    height: 1.3em;
     text-align: center;
   }
 
+  /* ── Board ── */
   #board-wrapper {
     overflow: auto;
     max-width: 100%;
-    max-height: calc(100dvh - 200px);
+    max-height: calc(100dvh - 260px);
+    border-radius: 10px;
     -webkit-overflow-scrolling: touch;
   }
 
   #board {
     display: inline-grid;
-    gap: 1px;
-    background: #7a7a7a;
-    padding: 3px;
-    border-radius: 6px;
+    gap: 2px;
+    background: rgba(0,0,0,0.4);
+    padding: 4px;
+    border-radius: 10px;
     touch-action: pan-x pan-y;
   }
 
+  /* ── Cells ── */
   .cell {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: bold;
+    font-weight: 800;
     cursor: pointer;
     user-select: none;
-    aspect-ratio: 1;
+    border-radius: 4px;
+    position: relative;
+    transition: transform 0.1s, box-shadow 0.1s, background 0.15s;
   }
 
   .cell.hidden {
-    background: #c0c0c0;
-    border-top: 3px solid #ffffff;
-    border-left: 3px solid #ffffff;
-    border-bottom: 3px solid #808080;
-    border-right: 3px solid #808080;
-    transition: all 0.08s ease-in;
+    background: linear-gradient(145deg, #d4d4d4, #b8b8b8);
+    box-shadow: 2px 2px 4px rgba(0,0,0,0.3), -1px -1px 2px rgba(255,255,255,0.6);
+    transform: translateY(0);
   }
 
   .cell.hidden:hover {
-    background: #d0d0d0;
-    border-top: 3px solid #ffffff;
-    border-left: 3px solid #ffffff;
-    border-bottom: 3px solid #888888;
-    border-right: 3px solid #888888;
+    background: linear-gradient(145deg, #e0e0e0, #c4c4c4);
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.35), -1px -1px 3px rgba(255,255,255,0.7);
   }
 
   .cell.hidden:active, .cell.hidden.pressing {
-    background: #b0b0b0;
-    border-top: 2px solid #808080;
-    border-left: 2px solid #808080;
-    border-bottom: 2px solid #d0d0d0;
-    border-right: 2px solid #d0d0d0;
+    background: linear-gradient(145deg, #b0b0b0, #a0a0a0);
+    box-shadow: inset 2px 2px 4px rgba(0,0,0,0.3), inset -1px -1px 2px rgba(255,255,255,0.2);
+    transform: translateY(1px);
   }
 
   .cell.revealed {
-    background: #d6d6d6;
-    border: 1px solid #a0a0a0;
+    background: rgba(255,255,255,0.06);
+    box-shadow: inset 1px 1px 3px rgba(0,0,0,0.2);
     cursor: default;
+    animation: revealPop 0.2s ease-out;
+  }
+
+  @keyframes revealPop {
+    0% { transform: scale(0.85); opacity: 0.5; }
+    60% { transform: scale(1.05); }
+    100% { transform: scale(1); opacity: 1; }
   }
 
   .cell.flagged {
-    background: #c0c0c0;
-    border-top: 3px solid #ffffff;
-    border-left: 3px solid #ffffff;
-    border-bottom: 3px solid #808080;
-    border-right: 3px solid #808080;
+    background: linear-gradient(145deg, #d4d4d4, #b8b8b8);
+    box-shadow: 2px 2px 4px rgba(0,0,0,0.3), -1px -1px 2px rgba(255,255,255,0.6);
+    animation: flagBounce 0.3s ease-out;
+  }
+
+  @keyframes flagBounce {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.2); }
+    100% { transform: scale(1); }
   }
 
   .cell.mine {
     background: #e94560;
-    border: 1px solid #a0a0a0;
+    box-shadow: 0 0 8px rgba(233, 69, 96, 0.6);
+    animation: mineReveal 0.3s ease-out;
   }
 
-  .cell .n1 { color: #0000ff; }
-  .cell .n2 { color: #008000; }
-  .cell .n3 { color: #ff0000; }
-  .cell .n4 { color: #000080; }
-  .cell .n5 { color: #800000; }
-  .cell .n6 { color: #008080; }
-  .cell .n7 { color: #000000; }
-  .cell .n8 { color: #808080; }
+  @keyframes mineReveal {
+    0% { transform: scale(0.5) rotate(0deg); opacity: 0; }
+    100% { transform: scale(1) rotate(10deg); opacity: 1; }
+  }
+
+  .cell .n1 { color: #4a90d9; }
+  .cell .n2 { color: #2ecc71; }
+  .cell .n3 { color: #e74c3c; }
+  .cell .n4 { color: #8e44ad; }
+  .cell .n5 { color: #d35400; }
+  .cell .n6 { color: #1abc9c; }
+  .cell .n7 { color: #2c3e50; }
+  .cell .n8 { color: #95a5a6; }
+
+  /* ── Game Over Shake ── */
+  .board-shake {
+    animation: shake 0.5s ease-out;
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10% { transform: translateX(-6px) rotate(-0.5deg); }
+    30% { transform: translateX(5px) rotate(0.5deg); }
+    50% { transform: translateX(-4px); }
+    70% { transform: translateX(3px); }
+    90% { transform: translateX(-1px); }
+  }
+
+  /* ── Overlay ── */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(6px);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .overlay.show {
+    display: flex;
+    animation: fadeIn 0.4s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .overlay-card {
+    background: linear-gradient(135deg, #1e1e3f, #2d2d5e);
+    border-radius: 20px;
+    padding: 30px 36px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    max-width: 320px;
+    width: 90%;
+    animation: cardSlide 0.4s ease-out;
+  }
+
+  @keyframes cardSlide {
+    from { transform: translateY(40px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .overlay-card .result-icon { font-size: 3rem; margin-bottom: 10px; }
+
+  .overlay-card h2 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin-bottom: 6px;
+  }
+
+  .overlay-card h2.win { color: #ffd200; }
+  .overlay-card h2.lose { color: #e94560; }
+
+  .overlay-card .stats {
+    font-size: 0.9rem;
+    color: #aaa;
+    margin-bottom: 18px;
+    line-height: 1.6;
+  }
+
+  .overlay-card .stats strong { color: #ffd200; }
+
+  .overlay-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+
+  .overlay-actions button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 700;
+    transition: all 0.25s;
+  }
+
+  .overlay-actions .retry-btn {
+    background: linear-gradient(135deg, #f7971e, #ffd200);
+    color: #1a1a2e;
+  }
+
+  .overlay-actions .retry-btn:hover { transform: scale(1.05); }
+
+  .overlay-actions .close-btn {
+    background: rgba(255,255,255,0.1);
+    color: #ccc;
+  }
+
+  .overlay-actions .close-btn:hover { background: rgba(255,255,255,0.2); }
+
+  /* ── Zoom ── */
+  .zoom-controls {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .zoom-controls button {
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.08);
+    color: #ccc;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .zoom-controls button:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+  .zoom-controls .zoom-label {
+    font-size: 0.7rem;
+    color: #888;
+    min-width: 32px;
+    text-align: center;
+  }
 </style>
 </head>
 <body>
 
-<h1>Minesweeper</h1>
-
-<div class="controls">
-  <button onclick="startGame(9, 9, 10)" id="btn-easy">Easy (9x9)</button>
-  <button onclick="startGame(16, 16, 40)" id="btn-medium">Medium (16x16)</button>
-  <button onclick="startGame(16, 30, 99)" id="btn-hard">Hard (30x16)</button>
+<div class="header">
+  <h1>MINESWEEPER</h1>
+  <div class="subtitle">Tap to reveal &middot; Long press to flag</div>
 </div>
 
-<div class="info-bar">
-  Mines: <span id="mine-count">0</span>
-  <button id="flag-toggle" onclick="toggleFlagMode()">Flag: OFF</button>
-  Time: <span id="timer">0</span>s
+<div class="difficulty">
+  <button onclick="startGame(9, 9, 10)" id="btn-easy">Easy</button>
+  <button onclick="startGame(16, 16, 40)" id="btn-medium">Medium</button>
+  <button onclick="startGame(16, 30, 99)" id="btn-hard">Hard</button>
 </div>
 
-<div class="zoom-controls">
-  <button onclick="zoomOut()">-</button>
-  <span id="zoom-level">100%</span>
-  <button onclick="zoomIn()">+</button>
+<div class="scoreboard">
+  <div class="stat"><span class="icon">\u{1F4A3}</span><span class="value" id="mine-count">0</span></div>
+  <div class="stat"><span class="icon">\u{23F1}\u{FE0F}</span><span class="value" id="timer">0</span></div>
+  <div class="zoom-controls">
+    <button onclick="zoomOut()">-</button>
+    <span class="zoom-label" id="zoom-level">100%</span>
+    <button onclick="zoomIn()">+</button>
+  </div>
 </div>
+
+<div class="toolbar">
+  <button class="restart-btn" onclick="restartGame()">
+    <span class="btn-icon">\u{1F504}</span> Restart
+  </button>
+  <button id="flag-toggle-btn" onclick="toggleFlagMode()">
+    <span class="btn-icon">\u{1F6A9}</span> <span id="flag-toggle-text">Flag Off</span>
+  </button>
+</div>
+
+<div class="mode-bar" id="mode-bar">Mode: Reveal</div>
 
 <div id="message"></div>
+
 <div id="board-wrapper">
   <div id="board"></div>
 </div>
 
+<!-- Overlay -->
+<div class="overlay" id="overlay">
+  <div class="overlay-card">
+    <div class="result-icon" id="result-icon"></div>
+    <h2 id="result-title"></h2>
+    <div class="stats" id="result-stats"></div>
+    <div class="overlay-actions">
+      <button class="retry-btn" onclick="restartGame(); closeOverlay();">Play Again</button>
+      <button class="close-btn" onclick="closeOverlay()">View Board</button>
+    </div>
+  </div>
+</div>
+
 <script>
 let rows, cols, totalMines;
-let board;
-let revealed;
-let flagged;
-let gameOver;
-let firstClick;
-let minesLeft;
-let timerInterval;
-let seconds;
+let board, revealed, flagged;
+let gameOver, firstClick;
+let minesLeft, timerInterval, seconds;
 let flagMode = false;
 let longPressTimer = null;
 let zoomFactor = 1.0;
+let currentDifficulty = [9, 9, 10];
 
 function toggleFlagMode() {
   flagMode = !flagMode;
-  const btn = document.getElementById('flag-toggle');
-  btn.textContent = flagMode ? 'Flag: ON' : 'Flag: OFF';
-  btn.classList.toggle('active', flagMode);
+  const btn = document.getElementById('flag-toggle-btn');
+  const text = document.getElementById('flag-toggle-text');
+  const modeBar = document.getElementById('mode-bar');
+
+  text.textContent = flagMode ? 'Flag On' : 'Flag Off';
+  btn.style.background = flagMode ? 'rgba(233, 69, 96, 0.25)' : '';
+  btn.style.color = flagMode ? '#ff6b6b' : '';
+  modeBar.textContent = flagMode ? 'Mode: Flag' : 'Mode: Reveal';
+  modeBar.classList.toggle('flag-active', flagMode);
+}
+
+function restartGame() {
+  startGame(currentDifficulty[0], currentDifficulty[1], currentDifficulty[2]);
+}
+
+function closeOverlay() {
+  document.getElementById('overlay').classList.remove('show');
+}
+
+function showOverlay(won) {
+  const overlay = document.getElementById('overlay');
+  const icon = document.getElementById('result-icon');
+  const title = document.getElementById('result-title');
+  const stats = document.getElementById('result-stats');
+
+  if (won) {
+    icon.textContent = '\u{1F3C6}';
+    title.textContent = 'You Win!';
+    title.className = 'win';
+    const flagCount = flagged.flat().filter(f => f).length;
+    stats.innerHTML = `Time: <strong>${seconds}s</strong><br>Mines: <strong>${totalMines}</strong><br>Difficulty: <strong>${rows === 9 ? 'Easy' : totalMines === 40 ? 'Medium' : 'Hard'}</strong>`;
+  } else {
+    icon.textContent = '\u{1F4A5}';
+    title.textContent = 'Game Over';
+    title.className = 'lose';
+    stats.innerHTML = `Time: <strong>${seconds}s</strong><br>Mines remaining: <strong>${minesLeft}</strong>`;
+  }
+
+  overlay.classList.add('show');
 }
 
 function zoomIn() {
@@ -258,17 +495,18 @@ function applyZoom() {
 }
 
 function getBaseCellSize() {
-  const maxWidth = window.innerWidth - 26;
-  const maxHeight = window.innerHeight - 220;
-  const cellW = Math.floor((maxWidth - (cols - 1)) / cols);
-  const cellH = Math.floor((maxHeight - (rows - 1)) / rows);
-  return Math.max(16, Math.min(36, cellW, cellH));
+  const maxWidth = window.innerWidth - 24;
+  const maxHeight = window.innerHeight - 280;
+  const cellW = Math.floor((maxWidth - (cols + 1) * 2) / cols);
+  const cellH = Math.floor((maxHeight - (rows + 1) * 2) / rows);
+  return Math.max(18, Math.min(38, cellW, cellH));
 }
 
 function startGame(r, c, mines) {
   rows = r;
   cols = c;
   totalMines = mines;
+  currentDifficulty = [r, c, mines];
   board = [];
   revealed = [];
   flagged = [];
@@ -277,14 +515,17 @@ function startGame(r, c, mines) {
   minesLeft = mines;
   seconds = 0;
   zoomFactor = 1.0;
-  document.getElementById('zoom-level').textContent = '100%';
 
+  document.getElementById('zoom-level').textContent = '100%';
   clearInterval(timerInterval);
   document.getElementById('timer').textContent = '0';
   document.getElementById('mine-count').textContent = minesLeft;
   document.getElementById('message').textContent = '';
 
-  document.querySelectorAll('.controls button').forEach(btn => btn.classList.remove('active'));
+  // Reset flag mode
+  if (flagMode) toggleFlagMode();
+
+  document.querySelectorAll('.difficulty button').forEach(btn => btn.classList.remove('active'));
   if (r === 9) document.getElementById('btn-easy').classList.add('active');
   else if (mines === 40) document.getElementById('btn-medium').classList.add('active');
   else document.getElementById('btn-hard').classList.add('active');
@@ -321,9 +562,7 @@ function placeMines(safeRow, safeCol) {
       for (let di = -1; di <= 1; di++) {
         for (let dj = -1; dj <= 1; dj++) {
           const ni = i + di, nj = j + dj;
-          if (ni >= 0 && ni < rows && nj >= 0 && nj < cols && board[ni][nj] === -1) {
-            count++;
-          }
+          if (ni >= 0 && ni < rows && nj >= 0 && nj < cols && board[ni][nj] === -1) count++;
         }
       }
       board[i][j] = count;
@@ -334,11 +573,11 @@ function placeMines(safeRow, safeCol) {
 function renderBoard() {
   const boardEl = document.getElementById('board');
   const baseSize = getBaseCellSize();
-  const cellSize = Math.max(12, Math.round(baseSize * zoomFactor));
-  const fontSize = Math.max(8, Math.floor(cellSize * 0.45));
-  const borderW = Math.max(1, Math.round(cellSize * 0.08));
+  const cellSize = Math.max(14, Math.round(baseSize * zoomFactor));
+  const fontSize = Math.max(8, Math.floor(cellSize * 0.42));
 
   boardEl.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
+  boardEl.classList.remove('board-shake');
   boardEl.innerHTML = '';
 
   for (let i = 0; i < rows; i++) {
@@ -347,11 +586,9 @@ function renderBoard() {
       cell.style.width = cellSize + 'px';
       cell.style.height = cellSize + 'px';
       cell.style.fontSize = fontSize + 'px';
-      cell.style.setProperty('--bw', borderW + 'px');
       cell.dataset.row = i;
       cell.dataset.col = j;
 
-      // Restore state for already-revealed/flagged cells
       if (revealed[i][j]) {
         cell.className = 'cell revealed';
         if (board[i][j] === -1) {
@@ -370,21 +607,18 @@ function renderBoard() {
         cell.className = 'cell hidden';
       }
 
-      // Desktop: click to reveal, right-click to flag
-      cell.addEventListener('click', (e) => {
-        if (flagMode) {
-          handleRightClick(i, j);
-        } else {
-          handleClick(i, j);
-        }
+      cell.addEventListener('click', () => {
+        if (flagMode) handleRightClick(i, j);
+        else handleClick(i, j);
       });
+
       cell.addEventListener('contextmenu', (e) => {
         e.preventDefault();
         handleRightClick(i, j);
       });
 
-      // Mobile: long press to flag, with press animation
-      cell.addEventListener('touchstart', (e) => {
+      // Long press = flag
+      cell.addEventListener('touchstart', () => {
         cell.classList.add('pressing');
         longPressTimer = setTimeout(() => {
           longPressTimer = null;
@@ -439,7 +673,8 @@ function handleClick(r, c) {
     revealAll();
     gameOver = true;
     clearInterval(timerInterval);
-    document.getElementById('message').textContent = 'Game Over! Pick a difficulty to retry.';
+    document.getElementById('board').classList.add('board-shake');
+    setTimeout(() => showOverlay(false), 800);
     return;
   }
 
@@ -456,6 +691,9 @@ function handleRightClick(r, c) {
   if (flagged[r][c]) {
     cell.textContent = '\u{1F6A9}';
     cell.classList.add('flagged');
+    cell.style.animation = 'none';
+    cell.offsetHeight;
+    cell.style.animation = '';
     minesLeft--;
   } else {
     cell.textContent = '';
@@ -472,7 +710,7 @@ function reveal(r, c) {
 
   revealed[r][c] = true;
   const cell = getCell(r, c);
-  cell.classList.remove('hidden');
+  cell.classList.remove('hidden', 'pressing');
   cell.classList.add('revealed');
 
   const val = board[r][c];
@@ -523,8 +761,6 @@ function checkWin() {
   if (safeCount === rows * cols - totalMines) {
     gameOver = true;
     clearInterval(timerInterval);
-    document.getElementById('message').textContent =
-      `You win! Completed in ${seconds}s`;
     for (let i = 0; i < rows; i++) {
       for (let j = 0; j < cols; j++) {
         if (board[i][j] === -1 && !flagged[i][j]) {
@@ -534,15 +770,14 @@ function checkWin() {
       }
     }
     document.getElementById('mine-count').textContent = 0;
+    setTimeout(() => showOverlay(true), 400);
   }
 }
 
-// Resize board when orientation changes
 window.addEventListener('resize', () => {
   if (!gameOver || firstClick) renderBoard();
 });
 
-// Start with easy mode
 startGame(9, 9, 10);
 </script>
 </body>
