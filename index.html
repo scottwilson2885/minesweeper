@@ -609,6 +609,7 @@ let flagMode = false;
 let longPressTimer = null;
 let lastTapTime = 0;
 let lastTapCell = null;
+let singleTapTimer = null;
 let zoomFactor = 1.0;
 let currentDifficulty = [9, 9, 10];
 let soundOn = true;
@@ -847,18 +848,24 @@ function renderBoard() {
       cell.addEventListener('click', () => {
         const now = Date.now();
         const key = i + ',' + j;
-        if (now - lastTapTime < 350 && lastTapCell === key) {
-          // Double tap
-          if (revealed[i][j]) handleChord(i, j);
-          else handleQuestion(i, j);
+        if (now - lastTapTime < 300 && lastTapCell === key) {
+          // Double tap detected — cancel single tap
+          if (singleTapTimer) { clearTimeout(singleTapTimer); singleTapTimer = null; }
           lastTapTime = 0;
           lastTapCell = null;
+          if (revealed[i][j]) handleChord(i, j);
+          else handleQuestion(i, j);
           return;
         }
         lastTapTime = now;
         lastTapCell = key;
-        if (flagMode) handleFlag(i, j);
-        else handleClick(i, j);
+        // Delay single tap to allow double tap detection
+        if (singleTapTimer) clearTimeout(singleTapTimer);
+        singleTapTimer = setTimeout(() => {
+          singleTapTimer = null;
+          if (flagMode) handleFlag(i, j);
+          else handleClick(i, j);
+        }, 300);
       });
 
       cell.addEventListener('contextmenu', (e) => { e.preventDefault(); handleFlag(i, j); });
