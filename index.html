@@ -607,6 +607,8 @@ let gameOver, firstClick;
 let minesLeft, timerInterval, seconds;
 let flagMode = false;
 let longPressTimer = null;
+let lastTapTime = 0;
+let lastTapCell = null;
 let zoomFactor = 1.0;
 let currentDifficulty = [9, 9, 10];
 let soundOn = true;
@@ -843,12 +845,21 @@ function renderBoard() {
 
       // Click
       cell.addEventListener('click', () => {
+        const now = Date.now();
+        const key = i + ',' + j;
+        if (now - lastTapTime < 350 && lastTapCell === key) {
+          // Double tap
+          if (revealed[i][j]) handleChord(i, j);
+          else handleQuestion(i, j);
+          lastTapTime = 0;
+          lastTapCell = null;
+          return;
+        }
+        lastTapTime = now;
+        lastTapCell = key;
         if (flagMode) handleFlag(i, j);
         else handleClick(i, j);
       });
-
-      // Double click = chord reveal
-      cell.addEventListener('dblclick', () => handleChord(i, j));
 
       cell.addEventListener('contextmenu', (e) => { e.preventDefault(); handleFlag(i, j); });
 
@@ -860,7 +871,7 @@ function renderBoard() {
           handleFlag(i, j);
           cell.dataset.longPressed = 'true';
           cell.classList.remove('pressing');
-        }, 400);
+        }, 250);
       }, { passive: true });
 
       cell.addEventListener('touchend', (e) => {
@@ -891,13 +902,7 @@ function updateProgress() {
 function handleClick(r, c) {
   if (gameOver || flagged[r][c] || revealed[r][c]) return;
 
-  if (questioned[r][c]) {
-    questioned[r][c] = false;
-    const cell = getCell(r, c);
-    cell.textContent = '';
-    cell.classList.remove('question');
-    return;
-  }
+  if (questioned[r][c]) return;
 
   if (firstClick) {
     firstClick = false;
@@ -929,31 +934,45 @@ function handleFlag(r, c) {
   if (gameOver || revealed[r][c]) return;
   const cell = getCell(r, c);
 
-  if (!flagged[r][c] && !questioned[r][c]) {
+  if (!flagged[r][c]) {
     // Unflagged -> flagged
     flagged[r][c] = true;
+    questioned[r][c] = false;
     cell.textContent = ''; cell.appendChild(makeFlagEl());
+    cell.classList.remove('question');
     cell.classList.add('flagged', 'flag-anim');
     minesLeft--;
     sfxFlag();
     haptic(15);
-  } else if (flagged[r][c]) {
-    // Flagged -> question
+  } else {
+    // Flagged -> unflagged
     flagged[r][c] = false;
-    questioned[r][c] = true;
-    cell.textContent = '?';
+    cell.textContent = '';
     cell.classList.remove('flagged', 'flag-anim');
-    cell.classList.add('question');
     minesLeft++;
     sfxUnflag();
-  } else {
-    // Question -> unflagged
-    questioned[r][c] = false;
-    cell.textContent = '';
-    cell.classList.remove('question');
   }
 
   document.getElementById('mine-count').textContent = minesLeft;
+}
+
+function handleQuestion(r, c) {
+  if (gameOver || revealed[r][c]) return;
+  const cell = getCell(r, c);
+  if (flagged[r][c]) {
+    flagged[r][c] = false;
+    minesLeft++;
+    cell.classList.remove('flagged', 'flag-anim');
+    document.getElementById('mine-count').textContent = minesLeft;
+  }
+  questioned[r][c] = !questioned[r][c];
+  if (questioned[r][c]) {
+    cell.textContent = '?';
+    cell.classList.add('question');
+  } else {
+    cell.textContent = '';
+    cell.classList.remove('question');
+  }
 }
 
 function handleChord(r, c) {
