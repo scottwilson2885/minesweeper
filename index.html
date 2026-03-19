@@ -78,7 +78,7 @@
     min-height: 100vh;
     min-height: 100dvh;
     padding: 10px 4px;
-    overflow-x: hidden;
+    overflow: visible;
     -webkit-tap-highlight-color: transparent;
     transition: background 0.4s, color 0.4s;
   }
@@ -1279,7 +1279,6 @@ document.addEventListener('touchstart', (e) => {
     isPinching = true;
     pinchStartDist = getPinchDist(e);
     pinchStartZoom = zoomFactor;
-    // Cancel any pending cell interactions
     if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
     if (singleTapTimer) { clearTimeout(singleTapTimer); singleTapTimer = null; }
   }
@@ -1290,15 +1289,27 @@ document.addEventListener('touchmove', (e) => {
     e.preventDefault();
     const dist = getPinchDist(e);
     const scale = dist / pinchStartDist;
-    zoomFactor = Math.max(0.4, Math.min(2.0, pinchStartZoom * scale));
-    document.getElementById('zoom-level').textContent = Math.round(zoomFactor * 100) + '%';
-    renderBoard();
+    const newZoom = Math.max(0.4, Math.min(2.0, pinchStartZoom * scale));
+    // Use CSS transform for smooth live preview
+    const board = document.getElementById('board');
+    board.style.transformOrigin = 'center center';
+    board.style.transform = `scale(${newZoom / zoomFactor})`;
+    document.getElementById('zoom-level').textContent = Math.round(newZoom * 100) + '%';
+    board.dataset.pendingZoom = newZoom;
   }
 }, { passive: false });
 
 document.addEventListener('touchend', () => {
   if (isPinching) {
-    setTimeout(() => { isPinching = false; }, 300);
+    const board = document.getElementById('board');
+    const pending = parseFloat(board.dataset.pendingZoom);
+    if (pending) {
+      zoomFactor = pending;
+      board.style.transform = '';
+      board.dataset.pendingZoom = '';
+      renderBoard();
+    }
+    setTimeout(() => { isPinching = false; }, 200);
   }
 });
 
