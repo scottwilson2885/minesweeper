@@ -865,7 +865,7 @@ function renderBoard() {
           singleTapTimer = null;
           if (flagMode) handleFlag(i, j);
           else handleClick(i, j);
-        }, 300);
+        }, 200);
       });
 
       cell.addEventListener('contextmenu', (e) => { e.preventDefault(); handleFlag(i, j); });
