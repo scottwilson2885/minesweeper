@@ -331,6 +331,20 @@
   .cell .n5 { color: var(--n5); } .cell .n6 { color: var(--n6); }
   .cell .n7 { color: var(--n7); } .cell .n8 { color: var(--n8); }
 
+  .cell .mine-dot {
+    width: 55%; height: 55%;
+    background: #1a1a2e;
+    border-radius: 50%;
+    box-shadow: 0 0 3px rgba(0,0,0,0.5);
+  }
+
+  .cell .flag-marker {
+    color: #e94560;
+    font-weight: 900;
+    font-size: inherit;
+    line-height: 1;
+  }
+
   /* ── Board Shake ── */
   .board-shake { animation: shake 0.5s ease-out; }
 
@@ -538,9 +552,9 @@
 </div>
 
 <div class="scoreboard">
-  <div class="stat"><span class="icon">\u{1F4A3}</span><span class="value" id="mine-count">0</span></div>
-  <div class="stat"><span class="icon">\u{23F1}\u{FE0F}</span><span class="value" id="timer">0</span></div>
-  <div class="stat"><span class="icon">\u{2705}</span><span class="value" id="progress">0%</span></div>
+  <div class="stat"><span class="icon">Mines:</span><span class="value" id="mine-count">0</span></div>
+  <div class="stat"><span class="icon">Time:</span><span class="value" id="timer">0</span></div>
+  <div class="stat"><span class="icon">Done:</span><span class="value" id="progress">0%</span></div>
   <div class="zoom-controls">
     <button onclick="zoomOut()">-</button>
     <span class="zoom-label" id="zoom-level">100%</span>
@@ -549,10 +563,10 @@
 </div>
 
 <div class="toolbar">
-  <button class="tool-btn" onclick="restartGame()" title="Restart"><span class="btn-icon">\u{1F504}</span> Restart</button>
-  <button class="tool-btn" id="flag-btn" onclick="toggleFlagMode()" title="Flag mode"><span class="btn-icon">\u{1F6A9}</span> <span id="flag-text">Flag</span></button>
-  <button class="tool-btn" onclick="showLeaderboard()" title="Leaderboard"><span class="btn-icon">\u{1F3C6}</span> Best</button>
-  <button class="tool-btn" id="sound-btn" onclick="toggleSound()" title="Sound"><span class="btn-icon">\u{1F50A}</span></button>
+  <button class="tool-btn" onclick="restartGame()" title="Restart"><span class="btn-icon">&#8635;</span> Restart</button>
+  <button class="tool-btn" id="flag-btn" onclick="toggleFlagMode()" title="Flag mode"><span class="btn-icon">&#9873;</span> <span id="flag-text">Flag</span></button>
+  <button class="tool-btn" onclick="showLeaderboard()" title="Leaderboard"><span class="btn-icon">&#9733;</span> Best</button>
+  <button class="tool-btn" id="sound-btn" onclick="toggleSound()" title="Sound"><span class="btn-icon">&#9835;</span></button>
 </div>
 
 <div class="mode-bar" id="mode-bar">Reveal mode</div>
@@ -579,7 +593,7 @@
 <!-- Leaderboard Panel -->
 <div class="lb-panel" id="lb-panel">
   <div class="lb-card">
-    <h3>\u{1F3C6} Leaderboard</h3>
+    <h3>&#9733; Leaderboard</h3>
     <div id="lb-content"></div>
     <button class="lb-close" onclick="closeLB()">Close</button>
   </div>
@@ -597,6 +611,19 @@ let zoomFactor = 1.0;
 let currentDifficulty = [9, 9, 10];
 let soundOn = true;
 let cascadeDelay = 0;
+
+function makeMineEl() {
+  const d = document.createElement('div');
+  d.className = 'mine-dot';
+  return d;
+}
+
+function makeFlagEl() {
+  const s = document.createElement('span');
+  s.className = 'flag-marker';
+  s.textContent = '\u2691';
+  return s;
+}
 
 const themes = ['dark', 'light', 'neon'];
 let themeIndex = 0;
@@ -664,7 +691,7 @@ function loadTheme() {
 function toggleSound() {
   soundOn = !soundOn;
   const btn = document.getElementById('sound-btn');
-  btn.querySelector('.btn-icon').textContent = soundOn ? '\u{1F50A}' : '\u{1F507}';
+  btn.querySelector('.btn-icon').textContent = soundOn ? '\u266B' : '\u266B';
   btn.classList.toggle('sound-off', !soundOn);
   localStorage.setItem('ms_sound', soundOn ? '1' : '0');
 }
@@ -674,7 +701,7 @@ function loadSound() {
   if (saved === '0') {
     soundOn = false;
     const btn = document.getElementById('sound-btn');
-    btn.querySelector('.btn-icon').textContent = '\u{1F507}';
+    btn.querySelector('.btn-icon').textContent = '\u266B';
     btn.classList.add('sound-off');
   }
 }
@@ -785,7 +812,7 @@ function renderBoard() {
         cell.className = 'cell revealed';
         if (board[i][j] === -1) {
           cell.classList.add('mine');
-          cell.textContent = '\u{1F4A3}';
+          cell.textContent = ''; cell.appendChild(makeMineEl());
         } else if (board[i][j] > 0) {
           const s = document.createElement('span');
           s.className = `n${board[i][j]}`;
@@ -794,7 +821,7 @@ function renderBoard() {
         }
       } else if (flagged[i][j]) {
         cell.className = 'cell hidden flagged';
-        cell.textContent = '\u{1F6A9}';
+        cell.textContent = ''; cell.appendChild(makeFlagEl());
       } else if (questioned[i][j]) {
         cell.className = 'cell hidden question';
         cell.textContent = '?';
@@ -893,7 +920,7 @@ function handleFlag(r, c) {
   if (!flagged[r][c] && !questioned[r][c]) {
     // Unflagged -> flagged
     flagged[r][c] = true;
-    cell.textContent = '\u{1F6A9}';
+    cell.textContent = ''; cell.appendChild(makeFlagEl());
     cell.classList.add('flagged', 'flag-anim');
     minesLeft--;
     sfxFlag();
@@ -990,7 +1017,7 @@ function revealAll() {
         cell.classList.remove('hidden');
         cell.classList.add('mine', 'mine-anim');
         cell.style.animationDelay = (delay * 30) + 'ms';
-        cell.textContent = '\u{1F4A3}';
+        cell.textContent = ''; cell.appendChild(makeMineEl());
         delay++;
       } else if (!revealed[i][j]) {
         revealed[i][j] = true;
@@ -1016,7 +1043,7 @@ function checkWin() {
     for (let i = 0; i < rows; i++) for (let j = 0; j < cols; j++) {
       if (board[i][j] === -1 && !flagged[i][j]) {
         flagged[i][j] = true;
-        getCell(i, j).textContent = '\u{1F6A9}';
+        const wc = getCell(i, j); wc.textContent = ''; wc.appendChild(makeFlagEl());
       }
     }
     document.getElementById('mine-count').textContent = 0;
@@ -1058,7 +1085,7 @@ function showOverlay(won) {
   const stats = getStats();
   const key = getDiffKey();
 
-  document.getElementById('result-icon').textContent = won ? '\u{1F3C6}' : '\u{1F4A5}';
+  document.getElementById('result-icon').textContent = won ? '\u2605' : '\u2716';
   const title = document.getElementById('result-title');
   title.textContent = won ? 'Victory!' : 'Game Over';
   title.className = won ? 'win' : 'lose';
@@ -1074,7 +1101,7 @@ function showOverlay(won) {
   const bestMsg = document.getElementById('best-time-msg');
   if (won && stats[key].times.length > 0) {
     const best = stats[key].times[0].time;
-    bestMsg.textContent = seconds <= best ? '\u{2B50} New best time!' : `Best: ${best}s`;
+    bestMsg.textContent = seconds <= best ? '\u2605 New best time!' : `Best: ${best}s`;
   } else {
     bestMsg.textContent = '';
   }
