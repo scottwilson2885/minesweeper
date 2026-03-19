@@ -878,7 +878,7 @@ function renderBoard() {
           handleFlag(i, j);
           cell.dataset.longPressed = 'true';
           cell.classList.remove('pressing');
-        }, 250);
+        }, 150);
       }, { passive: true });
 
       cell.addEventListener('touchend', (e) => {
