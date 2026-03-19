@@ -77,8 +77,8 @@
     align-items: center;
     min-height: 100vh;
     min-height: 100dvh;
-    padding: 10px 6px;
-    overflow-x: auto;
+    padding: 10px 4px;
+    overflow-x: hidden;
     -webkit-tap-highlight-color: transparent;
     transition: background 0.4s, color 0.4s;
   }
@@ -724,15 +724,20 @@ function applyZoom() {
   renderBoard();
 }
 
+function getGap() { return cols > 20 ? 1 : 2; }
+function getBoardPad() { return cols > 20 ? 2 : 4; }
+
 function getBaseCellSize() {
-  const boardPad = 8; // board padding (4px each side)
-  const bodyPad = 12; // body padding (6px each side)
-  const gaps = (cols - 1) * 2; // 2px gap between cells
+  const gap = getGap();
+  const boardPad = getBoardPad() * 2;
+  const bodyPad = 8;
+  const gaps = (cols - 1) * gap;
   const maxW = window.innerWidth - bodyPad - boardPad - gaps;
   const maxH = window.innerHeight - 300;
   const cW = Math.floor(maxW / cols);
-  const cH = Math.floor((maxH - (rows - 1) * 2) / rows);
-  return Math.max(10, Math.min(38, cW, cH));
+  const gapH = (rows - 1) * gap;
+  const cH = Math.floor((maxH - gapH) / rows);
+  return Math.max(8, Math.min(38, cW, cH));
 }
 
 // ── Game ──
@@ -794,9 +799,13 @@ function placeMines(safeR, safeC) {
 // ── Render ──
 function renderBoard() {
   const el = document.getElementById('board');
+  const gap = getGap();
+  const bPad = getBoardPad();
   const base = getBaseCellSize();
-  const sz = Math.max(14, Math.round(base * zoomFactor));
-  const fs = Math.max(8, Math.floor(sz * 0.42));
+  const sz = Math.max(8, Math.round(base * zoomFactor));
+  const fs = Math.max(6, Math.floor(sz * 0.42));
+  el.style.gap = gap + 'px';
+  el.style.padding = bPad + 'px';
 
   el.style.gridTemplateColumns = `repeat(${cols}, ${sz}px)`;
   el.classList.remove('board-shake');
