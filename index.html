@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Minesweeper</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -79,6 +79,33 @@
     border-color: #e94560;
   }
 
+  .zoom-controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .zoom-controls button {
+    width: 36px;
+    height: 36px;
+    border: 2px solid #0f3460;
+    border-radius: 6px;
+    background: #16213e;
+    color: #eee;
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .zoom-controls button:hover { background: #0f3460; }
+
+  #zoom-level {
+    font-size: 0.85rem;
+    color: #aaa;
+    align-self: center;
+  }
+
   #message {
     font-size: 1.1rem;
     font-weight: bold;
@@ -87,14 +114,20 @@
     text-align: center;
   }
 
+  #board-wrapper {
+    overflow: auto;
+    max-width: 100%;
+    max-height: calc(100dvh - 200px);
+    -webkit-overflow-scrolling: touch;
+  }
+
   #board {
     display: inline-grid;
     gap: 1px;
-    background: #0f3460;
+    background: #7a7a7a;
     padding: 3px;
     border-radius: 6px;
-    max-width: 100%;
-    touch-action: manipulation;
+    touch-action: pan-x pan-y;
   }
 
   .cell {
@@ -102,27 +135,63 @@
     align-items: center;
     justify-content: center;
     font-weight: bold;
-    border-radius: 3px;
     cursor: pointer;
     user-select: none;
-    transition: background 0.1s;
     aspect-ratio: 1;
   }
 
-  .cell.hidden { background: #16213e; }
-  .cell.hidden:hover { background: #1a2a50; }
-  .cell.revealed { background: #0a1628; cursor: default; }
-  .cell.flagged { background: #16213e; }
-  .cell.mine { background: #e94560; }
+  .cell.hidden {
+    background: #c0c0c0;
+    border-top: 3px solid #ffffff;
+    border-left: 3px solid #ffffff;
+    border-bottom: 3px solid #808080;
+    border-right: 3px solid #808080;
+    transition: all 0.08s ease-in;
+  }
 
-  .cell .n1 { color: #4fc3f7; }
-  .cell .n2 { color: #81c784; }
-  .cell .n3 { color: #e57373; }
-  .cell .n4 { color: #7c4dff; }
-  .cell .n5 { color: #ff8a65; }
-  .cell .n6 { color: #4dd0e1; }
-  .cell .n7 { color: #f48fb1; }
-  .cell .n8 { color: #ccc; }
+  .cell.hidden:hover {
+    background: #d0d0d0;
+    border-top: 3px solid #ffffff;
+    border-left: 3px solid #ffffff;
+    border-bottom: 3px solid #888888;
+    border-right: 3px solid #888888;
+  }
+
+  .cell.hidden:active, .cell.hidden.pressing {
+    background: #b0b0b0;
+    border-top: 2px solid #808080;
+    border-left: 2px solid #808080;
+    border-bottom: 2px solid #d0d0d0;
+    border-right: 2px solid #d0d0d0;
+  }
+
+  .cell.revealed {
+    background: #d6d6d6;
+    border: 1px solid #a0a0a0;
+    cursor: default;
+  }
+
+  .cell.flagged {
+    background: #c0c0c0;
+    border-top: 3px solid #ffffff;
+    border-left: 3px solid #ffffff;
+    border-bottom: 3px solid #808080;
+    border-right: 3px solid #808080;
+  }
+
+  .cell.mine {
+    background: #e94560;
+    border: 1px solid #a0a0a0;
+  }
+
+  .cell .n1 { color: #0000ff; }
+  .cell .n2 { color: #008000; }
+  .cell .n3 { color: #ff0000; }
+  .cell .n4 { color: #000080; }
+  .cell .n5 { color: #800000; }
+  .cell .n6 { color: #008080; }
+  .cell .n7 { color: #000000; }
+  .cell .n8 { color: #808080; }
 </style>
 </head>
 <body>
@@ -141,8 +210,16 @@
   Time: <span id="timer">0</span>s
 </div>
 
+<div class="zoom-controls">
+  <button onclick="zoomOut()">-</button>
+  <span id="zoom-level">100%</span>
+  <button onclick="zoomIn()">+</button>
+</div>
+
 <div id="message"></div>
-<div id="board"></div>
+<div id="board-wrapper">
+  <div id="board"></div>
+</div>
 
 <script>
 let rows, cols, totalMines;
@@ -156,6 +233,7 @@ let timerInterval;
 let seconds;
 let flagMode = false;
 let longPressTimer = null;
+let zoomFactor = 1.0;
 
 function toggleFlagMode() {
   flagMode = !flagMode;
@@ -164,9 +242,24 @@ function toggleFlagMode() {
   btn.classList.toggle('active', flagMode);
 }
 
-function getCellSize() {
-  const maxWidth = window.innerWidth - 26; // padding + board padding
-  const maxHeight = window.innerHeight - 180; // space for header/controls
+function zoomIn() {
+  zoomFactor = Math.min(2.0, zoomFactor + 0.15);
+  applyZoom();
+}
+
+function zoomOut() {
+  zoomFactor = Math.max(0.4, zoomFactor - 0.15);
+  applyZoom();
+}
+
+function applyZoom() {
+  document.getElementById('zoom-level').textContent = Math.round(zoomFactor * 100) + '%';
+  renderBoard();
+}
+
+function getBaseCellSize() {
+  const maxWidth = window.innerWidth - 26;
+  const maxHeight = window.innerHeight - 220;
   const cellW = Math.floor((maxWidth - (cols - 1)) / cols);
   const cellH = Math.floor((maxHeight - (rows - 1)) / rows);
   return Math.max(16, Math.min(36, cellW, cellH));
@@ -183,6 +276,8 @@ function startGame(r, c, mines) {
   firstClick = true;
   minesLeft = mines;
   seconds = 0;
+  zoomFactor = 1.0;
+  document.getElementById('zoom-level').textContent = '100%';
 
   clearInterval(timerInterval);
   document.getElementById('timer').textContent = '0';
@@ -238,8 +333,10 @@ function placeMines(safeRow, safeCol) {
 
 function renderBoard() {
   const boardEl = document.getElementById('board');
-  const cellSize = getCellSize();
-  const fontSize = Math.max(10, Math.floor(cellSize * 0.45));
+  const baseSize = getBaseCellSize();
+  const cellSize = Math.max(12, Math.round(baseSize * zoomFactor));
+  const fontSize = Math.max(8, Math.floor(cellSize * 0.45));
+  const borderW = Math.max(1, Math.round(cellSize * 0.08));
 
   boardEl.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
   boardEl.innerHTML = '';
@@ -247,12 +344,31 @@ function renderBoard() {
   for (let i = 0; i < rows; i++) {
     for (let j = 0; j < cols; j++) {
       const cell = document.createElement('div');
-      cell.className = 'cell hidden';
       cell.style.width = cellSize + 'px';
       cell.style.height = cellSize + 'px';
       cell.style.fontSize = fontSize + 'px';
+      cell.style.setProperty('--bw', borderW + 'px');
       cell.dataset.row = i;
       cell.dataset.col = j;
+
+      // Restore state for already-revealed/flagged cells
+      if (revealed[i][j]) {
+        cell.className = 'cell revealed';
+        if (board[i][j] === -1) {
+          cell.classList.add('mine');
+          cell.textContent = '\u{1F4A3}';
+        } else if (board[i][j] > 0) {
+          const span = document.createElement('span');
+          span.className = `n${board[i][j]}`;
+          span.textContent = board[i][j];
+          cell.appendChild(span);
+        }
+      } else if (flagged[i][j]) {
+        cell.className = 'cell hidden flagged';
+        cell.textContent = '\u{1F6A9}';
+      } else {
+        cell.className = 'cell hidden';
+      }
 
       // Desktop: click to reveal, right-click to flag
       cell.addEventListener('click', (e) => {
@@ -267,16 +383,19 @@ function renderBoard() {
         handleRightClick(i, j);
       });
 
-      // Mobile: long press to flag
+      // Mobile: long press to flag, with press animation
       cell.addEventListener('touchstart', (e) => {
+        cell.classList.add('pressing');
         longPressTimer = setTimeout(() => {
           longPressTimer = null;
           handleRightClick(i, j);
           cell.dataset.longPressed = 'true';
+          cell.classList.remove('pressing');
         }, 400);
       }, { passive: true });
 
       cell.addEventListener('touchend', (e) => {
+        cell.classList.remove('pressing');
         if (longPressTimer) {
           clearTimeout(longPressTimer);
           longPressTimer = null;
@@ -288,6 +407,7 @@ function renderBoard() {
       });
 
       cell.addEventListener('touchmove', () => {
+        cell.classList.remove('pressing');
         if (longPressTimer) {
           clearTimeout(longPressTimer);
           longPressTimer = null;
@@ -335,9 +455,11 @@ function handleRightClick(r, c) {
 
   if (flagged[r][c]) {
     cell.textContent = '\u{1F6A9}';
+    cell.classList.add('flagged');
     minesLeft--;
   } else {
     cell.textContent = '';
+    cell.classList.remove('flagged');
     minesLeft++;
   }
 
