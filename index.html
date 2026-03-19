@@ -725,11 +725,14 @@ function applyZoom() {
 }
 
 function getBaseCellSize() {
-  const maxW = window.innerWidth - 22;
+  const boardPad = 8; // board padding (4px each side)
+  const bodyPad = 12; // body padding (6px each side)
+  const gaps = (cols - 1) * 2; // 2px gap between cells
+  const maxW = window.innerWidth - bodyPad - boardPad - gaps;
   const maxH = window.innerHeight - 300;
-  const cW = Math.floor((maxW - (cols + 1) * 2) / cols);
-  const cH = Math.floor((maxH - (rows + 1) * 2) / rows);
-  return Math.max(18, Math.min(38, cW, cH));
+  const cW = Math.floor(maxW / cols);
+  const cH = Math.floor((maxH - (rows - 1) * 2) / rows);
+  return Math.max(14, Math.min(38, cW, cH));
 }
 
 // ── Game ──
